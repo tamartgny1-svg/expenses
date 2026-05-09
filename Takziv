@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעקב הוצאות</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #18181f;
+    --surface2: #22222c;
+    --border: #2e2e3a;
+    --accent: #f0a500;
+    --accent2: #e05c5c;
+    --text: #f0ede8;
+    --muted: #7a7a8c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0 0 80px; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .logo { font-size: 1.4rem; font-weight: 900; }
+  .logo span { color: var(--accent); }
+  .month-badge { background: var(--accent); color: #000; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .total-bar { display: flex; align-items: baseline; gap: 6px; }
+  .total-label { font-size: 0.8rem; color: var(--muted); }
+  .total-amount { font-size: 2rem; font-weight: 900; color: var(--accent); line-height: 1; }
+  .total-currency { font-size: 0.9rem; color: var(--muted); }
+  .input-area { padding: 20px; }
+  .input-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 10px; align-items: flex-end; }
+  .input-box:focus-within { border-color: var(--accent); }
+  textarea { flex: 1; background: none; border: none; outline: none; color: var(--text); font-family: 'Heebo', sans-serif; font-size: 1rem; resize: none; line-height: 1.5; min-height: 44px; }
+  textarea::placeholder { color: var(--muted); }
+  .send-btn { background: var(--accent); border: none; border-radius: 10px; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .send-btn:disabled { opacity: 0.4; }
+  .hint { font-size: 0.75rem; color: var(--muted); margin-top: 8px; }
+  .sections { padding: 0 20px; }
+  .section-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 12px; margin-top: 24px; }
+  .categories-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+  .cat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; position: relative; overflow: hidden; }
+  .cat-card::before { content: ''; position: absolute; bottom: 0; right: 0; width: 100%; height: 3px; background: var(--cat-color, var(--accent)); }
+  .cat-emoji { font-size: 1.5rem; margin-bottom: 6px; }
+  .cat-name { font-size: 0.75rem; color: var(--muted); margin-bottom: 2px; }
+  .cat-amount { font-size: 1.2rem; font-weight: 700; }
+  .cat-count { font-size: 0.7rem; color: var(--muted); }
+  .expense-item { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+  .expense-emoji { font-size: 1.4rem; width: 42px; height: 42px; background: var(--surface2); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .expense-info { flex: 1; min-width: 0; }
+  .expense-desc { font-size: 0.9rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .expense-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; display: flex; gap: 8px; }
+  .expense-cat-badge { background: var(--surface2); padding: 1px 6px; border-radius: 6px; }
+  .expense-amount { font-size: 1.1rem; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+  .delete-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; flex-shrink: 0; font-size: 1rem; }
+  .loading-item { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 0.85rem; color: var(--muted); }
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-emoji { font-size: 3rem; margin-bottom: 12px; }
+  .empty p { font-size: 0.9rem; line-height: 1.6; }
+  .toast { position: fixed; bottom: 20px; right: 20px; left: 20px; background: var(--accent2); color: white; padding: 12px 16px; border-radius: 12px; font-size: 0.85rem; z-index: 999; }
+  .clear-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'Heebo', sans-serif; font-size: 0.8rem; padding: 6px 12px; border-radius: 8px; cursor: pointer; margin-top: 16px; width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-top">
+    <div class="logo">מעקב <span>הוצאות</span></div>
+    <div class="month-badge" id="monthBadge"></div>
+  </div>
+  <div class="total-bar">
+    <span class="total-label">סה״כ החודש:</span>
+    <span class="total-amount" id="totalAmount">0</span>
+    <span class="total-currency">₪</span>
+  </div>
+</header>
+<div class="input-area">
+  <div class="input-box">
+    <textarea id="inputText" placeholder="הוצאתי 30 שקל בננה..." rows="1"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="addExpense()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+  <div class="hint">פשוט תכתבי מה הוצאת — הבינה תסווג בשבילך ✨</div>
+</div>
+<div class="sections">
+  <div id="categoriesSection" style="display:none">
+    <div class="section-title">לפי קטגוריות</div>
+    <div class="categories-grid" id="categoriesGrid"></div>
+  </div>
+  <div class="section-title" style="margin-top:24px">הוצאות אחרונות</div>
+  <div id="expensesList">
+    <div class="empty"><div class="empty-emoji">🧾</div><p>עדיין אין הוצאות החודש<br>כתבי למעלה כדי להתחיל לעקוב</p></div>
+  </div>
+  <button class="clear-btn" id="clearBtn" onclick="clearAll()" style="display:none">🗑️ נקה את כל ההוצאות החודש</button>
+</div>
+<script>
+const STORAGE_KEY = 'expenses_v2';
+const CAT_CONFIG = {
+  'מזון ושתייה': { emoji: '🛒', color: '#4caf7d' },
+  'מסעדות וקפה': { emoji: '☕', color: '#f0a500' },
+  'תחבורה': { emoji: '🚗', color: '#5b8def' },
+  'בריאות': { emoji: '💊', color: '#e05c5c' },
+  'קניות וביגוד': { emoji: '👗', color: '#c278e0' },
+  'בידור ותרבות': { emoji: '🎬', color: '#e0785c' },
+  'חינוך': { emoji: '📚', color: '#5ce0d4' },
+  'טיפוח': { emoji: '💅', color: '#e05c99' },
+  'בית ומשק': { emoji: '🏠', color: '#78a0e0' },
+  'ילדים': { emoji: '👶', color: '#f0c040' },
+  'חיות מחמד': { emoji: '🐾', color: '#a0d06a' },
+  'שונות': { emoji: '📦', color: '#7a7a8c' },
+};
+function getCurrentMonthKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function loadExpenses() { try { const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); return data[getCurrentMonthKey()] || []; } catch { return []; } }
+function saveExpenses(list) { try { const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); data[getCurrentMonthKey()] = list; localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {} }
+let expenses = loadExpenses();
+function setMonthBadge() { const months = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']; const d = new Date(); document.getElementById('monthBadge').textContent = `${months[d.getMonth()]} ${d.getFullYear()}`; }
+setMonthBadge();
+const ta = document.getElementById('inputText');
+ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; });
+ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addExpense(); } });
+async function classifyExpense(text) {
+  const categories = Object.keys(CAT_CONFIG).join(', ');
+  const prompt = `אתה עוזר לסיווג הוצאות כספיות.\nהמשתמשת כתבה: "${text}"\nהחזר JSON בלבד ללא markdown עם: amount (מספר), description (2-4 מילים עברית), category (אחת מ: ${categories})\nדוגמה: {"amount":30,"description":"בננות","category":"מזון ושתייה"}`;
+  const response = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200, messages: [{ role: "user", content: prompt }] }) });
+  const data = await response.json();
+  const raw = data.content[0].text.replace(/```json|```/g, '').trim();
+  return JSON.parse(raw);
+}
+async function addExpense() {
+  const text = ta.value.trim(); if (!text) return;
+  const btn = document.getElementById('sendBtn'); btn.disabled = true; ta.value = ''; ta.style.height = 'auto';
+  const loadId = 'load_' + Date.now(); const loadEl = document.createElement('div'); loadEl.className = 'loading-item'; loadEl.id = loadId;
+  loadEl.innerHTML = `<div class="spinner"></div><span class="loading-text">מסווגת...</span>`;
+  const list = document.getElementById('expensesList'); const empty = list.querySelector('.empty'); if (empty) empty.remove();
+  list.insertBefore(loadEl, list.firstChild);
+  try {
+    const result = await classifyExpense(text); document.getElementById(loadId)?.remove();
+    const expense = { id: Date.now(), original: text, description: result.description, amount: result.amount, category: result.category, date: new Date().toLocaleDateString('he-IL'), time: new Date().toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'}) };
+    expenses.unshift(expense); saveExpenses(expenses); renderAll();
+  } catch(e) { document.getElementById(loadId)?.remove(); showToast('שגיאה בסיווג — נסי שוב'); if (!expenses.length) list.innerHTML = `<div class="empty"><div class="empty-emoji">🧾</div><p>עדיין אין הוצאות</p></div>`; }
+  btn.disabled = false;
+}
+function renderAll() { renderTotal(); renderCategories(); renderList(); document.getElementById('clearBtn').style.display = expenses.length ? 'block' : 'none'; }
+function renderTotal() { const total = expenses.reduce((s, e) => s + (e.amount || 0), 0); document.getElementById('totalAmount').textContent = total.toLocaleString('he-IL'); }
+function renderCategories() {
+  const section = document.getElementById('categoriesSection'); const grid = document.getElementById('categoriesGrid');
+  const cats = {}; expenses.forEach(e => { if (!cats[e.category]) cats[e.category] = { total: 0, count: 0 }; cats[e.category].total += e.amount || 0; cats[e.category].count++; });
+  if (!Object.keys(cats).length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = Object.entries(cats).sort((a,b) => b[1].total - a[1].total).map(([cat, data]) => { const cfg = CAT_CONFIG[cat] || { emoji: '📦', color: '#7a7a8c' }; return `<div class="cat-card" style="--cat-color:${cfg.color}"><div class="cat-emoji">${cfg.emoji}</div><div class="cat-name">${cat}</div><div class="cat-amount">₪${data.total.toLocaleString('he-IL')}</div><div class="cat-count">${data.count} רכישות</div></div>`; }).join('');
+}
+function renderList() {
+  const list = document.getElementById('expensesList');
+  if (!expenses.length) { list.innerHTML = `<div class="empty"><div class="empty-emoji">🧾</div><p>עדיין אין הוצאות החודש<br>כתבי למעלה כדי להתחיל לעקוב</p></div>`; return; }
+  list.innerHTML = expenses.map(e => { const cfg = CAT_CONFIG[e.category] || { emoji: '📦', color: '#7a7a8c' }; return `<div class="expense-item"><div class="expense-emoji">${cfg.emoji}</div><div class="expense-info"><div class="expense-desc">${e.description}</div><div class="expense-meta"><span class="expense-cat-badge">${e.category}</span><span>${e.date} · ${e.time}</span></div></div><div class="expense-amount">₪${(e.amount||0).toLocaleString('he-IL')}</div><button class="delete-btn" onclick="deleteExpense(${e.id})">✕</button></div>`; }).join('');
+}
+function deleteExpense(id) { expenses = expenses.filter(e => e.id !== id); saveExpenses(expenses); renderAll(); }
+function clearAll() { if (confirm('למחוק את כל ההוצאות?')) { expenses = []; saveExpenses(expenses); renderAll(); } }
+function showToast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
+renderAll();
+</script>
+</body>
+</html>
